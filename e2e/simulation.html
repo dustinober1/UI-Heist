@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UI Heist Simulation</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 50px;
+      background-color: #f0f0f0;
+    }
+    .card {
+      background-color: white;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      width: 300px;
+    }
+    .card-title {
+      color: #333;
+      font-size: 24px;
+      margin-bottom: 10px;
+    }
+    .card-text {
+      color: #666;
+      font-size: 16px;
+      line-height: 1.5;
+    }
+    .card-btn {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-top: 15px;
+      font-weight: bold;
+    }
+    .card-btn:hover {
+      background-color: #0056b3;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="target-card" class="card">
+    <h2 class="card-title">Test Card</h2>
+    <p class="card-text">This is a component to test recursive capturing.</p>
+    <button class="card-btn">Action</button>
+  </div>
+
+</body>
+</html>
