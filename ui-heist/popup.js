@@ -10,10 +10,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (result.capturedCode) {
       codeOutput.value = result.capturedCode;
       outputContainer.style.display = 'flex';
-      // Optional: Clear storage after reading so next time it's fresh?
-      // User said: "reopen it to see the result".
-      // If they close and reopen, they probably still want to see it until they start a new inspection.
-      // So we keep it until a new inspection starts.
     }
   });
 
@@ -21,22 +17,29 @@ document.addEventListener('DOMContentLoaded', () => {
   startBtn.addEventListener('click', () => {
     // Clear previous capture
     chrome.storage.local.remove('capturedCode', () => {
-      // Send message to active tab
-      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        if (tabs[0]) {
-          // If the content script is not injected yet (e.g. reload), chrome might error.
-          // But manifest injects it on all_urls.
-          // We can also try scripting.executeScript if message fails, but for MVP message is standard.
+      chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
+        const tab = tabs[0];
+        if (!tab) return;
 
-          chrome.tabs.sendMessage(tabs[0].id, { action: "toggle_inspect" })
-            .catch(err => {
-              // Fallback: If content script is not ready/listening
-              console.error("Could not send message:", err);
-              // Maybe inject content script manually if needed?
-              // For MVP, we assume manifest injection works.
-            });
+        try {
+          // Inject CSS
+          await chrome.scripting.insertCSS({
+            target: { tabId: tab.id },
+            files: ['styles.css']
+          });
 
-          window.close(); // Close the popup
+          // Inject JS
+          await chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            files: ['utils.js', 'content.js']
+          });
+
+          // Send message to toggle inspection
+          chrome.tabs.sendMessage(tab.id, { action: "toggle_inspect" });
+          
+          window.close();
+        } catch (err) {
+          console.error("Failed to inject or communicate:", err);
         }
       });
     });

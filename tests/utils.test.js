@@ -37,22 +37,20 @@ try {
     children: []
   };
   const jsx = Utils.generateJSX(node);
-  const expected = '<div style={{\n  "color": "red",\n  "display": "flex"\n}}></div>';
-  // Note: JSON.stringify order is not guaranteed but usually insertion order.
-  // We'll normalize whitespace for comparison if needed, but let's try strict first.
-
-  // Actually, JSON.stringify returns "color": "red".
-  // Let's assert it contains key parts.
+  // Expect inline style with unquoted keys
+  // <div style={{ color: "red", display: "flex" }} />
+  
   assert.ok(jsx.includes('<div style={{'));
-  assert.ok(jsx.includes('"color": "red"'));
-  assert.ok(jsx.includes('}}></div>'));
+  assert.ok(jsx.includes('color: "red"'));
+  assert.ok(jsx.includes('display: "flex"'));
+  assert.ok(jsx.includes('}} />'));
   console.log('✅ generateJSX (Single Element) passed');
 } catch (e) {
   console.error('❌ generateJSX (Single Element) failed', e);
   console.error('Actual:', Utils.generateJSX({
     type: 'element',
     tagName: 'div',
-    style: { color: 'red' },
+    style: { color: 'red', display: 'flex' },
     children: []
   }));
   process.exit(1);
@@ -77,15 +75,15 @@ try {
   };
 
   const jsx = Utils.generateJSX(node);
-  // Expected roughly: <button style={{...}}><span style={{...}}>Click Me</span></button>
+  // Expected roughly: <button style={{...}}>\n  <span style={{...}}>Click Me</span>\n</button>
 
-  assert.ok(jsx.startsWith('<button'));
+  assert.ok(jsx.trim().startsWith('<button'));
   assert.ok(jsx.includes('<span'));
   assert.ok(jsx.includes('Click Me'));
-  assert.ok(jsx.includes('</span>'));
+  assert.ok(jsx.includes('</span')); // might be span>Click Me</span>
   assert.ok(jsx.includes('</button>'));
-  assert.ok(jsx.includes('"padding": "10px"'));
-  assert.ok(jsx.includes('"fontWeight": "bold"'));
+  assert.ok(jsx.includes('padding: "10px"'));
+  assert.ok(jsx.includes('fontWeight: "bold"'));
 
   console.log('✅ generateJSX (Nested) passed');
 } catch (e) {

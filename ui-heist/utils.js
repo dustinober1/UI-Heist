@@ -23,58 +23,75 @@
     return (value && value !== "0px" && value !== "none" && value !== "auto" && value !== "normal" && value !== "rgba(0, 0, 0, 0)");
   }
 
-  // Indent lines helper
-  function indentLines(str, spaces) {
-    const indent = ' '.repeat(spaces);
-    return str.split('\n').map(line => indent + line).join('\n');
+  function escapeJSXText(text) {
+    if (!text) return "";
+    return text
+      .replace(/{/g, "{'{'}")
+      .replace(/}/g, "{'}'}")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
   }
 
   // Generates JSX string from a node tree
-  function generateJSX(node) {
-    // Handle text nodes
+  function generateJSX(node, level = 0) {
+    const indent = '  '.repeat(level);
+
     if (node.type === 'text') {
       const text = node.content ? node.content.trim() : '';
-      return text ? text : '';
+      if (!text) return null;
+      return `${indent}${escapeJSXText(text)}`;
     }
 
     const tagName = node.tagName.toLowerCase();
 
-    // Convert style object to string
-    const styleString = JSON.stringify(node.style, null, 2);
-
-    // Props string (style + any other attributes if we decide to keep them)
-    // For now, only style is "heisted".
-    let props = "";
-    if (Object.keys(node.style).length > 0) {
-      // If style object is multiline, we want it to look nice
-      // But JSON.stringify gives "{\n  ... \n}". We need to fit it into `style={...}`.
-      // Let's remove the outer braces of the JSON and re-wrap if needed?
-      // Actually `style={...}` expects an object. In JSX text it looks like `style={{ color: 'red' }}`.
-      props = ` style={${styleString}}`;
+    // Generate style prop
+    let propsString = "";
+    const styleEntries = Object.entries(node.style);
+    if (styleEntries.length > 0) {
+      const styleProps = styleEntries
+        .map(([key, val]) => {
+            // Ensure values are properly escaped strings
+            const safeVal = val.replace(/"/g, '\"');
+            return `${key}: "${safeVal}"`;
+        })
+        .join(', ');
+      propsString = ` style={{ ${styleProps} }}`;
     }
 
-    const childrenJSX = node.children.map(child => generateJSX(child)).join('');
-
-    // Self closing?
-    const voidElements = ["area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr"];
-    if (voidElements.includes(tagName) && !childrenJSX) {
-      return `<${tagName}${props} />`;
+    // Handle children
+    if (!node.children || node.children.length === 0) {
+      return `${indent}<${tagName}${propsString} />`;
     }
 
-    return `<${tagName}${props}>${childrenJSX}</${tagName}>`;
+    // Optimization: If single text child, inline it
+    if (node.children.length === 1 && node.children[0].type === 'text') {
+      const textContent = node.children[0].content ? node.children[0].content.trim() : '';
+      if (textContent) {
+        return `${indent}<${tagName}${propsString}>${escapeJSXText(textContent)}</${tagName}>`;
+      } else {
+        return `${indent}<${tagName}${propsString} />`;
+      }
+    }
+
+    // Process nested children
+    const childrenJSX = node.children
+      .map(child => generateJSX(child, level + 1))
+      .filter(chunk => chunk !== null)
+      .join('\n');
+
+    return `${indent}<${tagName}${propsString}>
+${childrenJSX}
+${indent}</${tagName}>`;
   }
 
   // Wrapper to generate the full component string
   function generateComponentCode(rootNode) {
-    const jsx = generateJSX(rootNode);
-    // Beautify? For now just simple indentation might be hard on a recursive string.
-    // Let's just wrap it.
+    // We start at level 2 so it sits nicely inside the component return
+    const jsx = generateJSX(rootNode, 2);
 
     return `const CapturedComponent = () => {
   return (
-    <>
-${indentLines(jsx, 6)}
-    </>
+${jsx}
   );
 };
 

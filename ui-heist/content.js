@@ -1,10 +1,18 @@
 // content.js
+if (window.UIHeistInjected) {
+  // Script already loaded. The existing listener will handle the message.
+  // We don't want to re-register listeners or variables.
+  throw new Error('UI Heist already injected'); // Stops execution of this script instance
+}
+window.UIHeistInjected = true;
+
 let activeElement = null;
 let isInspecting = false;
+let elementCount = 0;
+const MAX_DEPTH = 20;
+const MAX_ELEMENTS = 2000;
 
 // Access the shared utils. In browser this is global.
-// Note: In Node test environment this might be undefined unless mocked,
-// but this file runs in Chrome.
 const Utils = window.UIHeistUtils;
 
 // 1. Listen for messages from popup to toggle inspection
@@ -58,13 +66,9 @@ function handleClick(e) {
   e.stopPropagation();
 
   const el = e.target;
-
-  // Recursively Capture Data
-  // We need to ensure we don't capture the highlight class
-  // Although captureDOM reads computed styles, the highlight class mainly adds outline.
-  // Outline is not in our whitelist, so it's safe.
-  // However, cursor: crosshair might be picked up?
-  // 'cursor' is not in RELEVANT_STYLE_PROPS.
+  
+  // Reset safety counters
+  elementCount = 0;
 
   const nodeTree = captureDOM(el);
 
@@ -85,7 +89,12 @@ function handleClick(e) {
  * Recursively captures the DOM structure and computed styles.
  * Returns a tree object.
  */
-function captureDOM(el) {
+function captureDOM(el, depth = 0) {
+  // Performance Guardrails
+  if (depth > MAX_DEPTH) return null;
+  if (elementCount > MAX_ELEMENTS) return null;
+  elementCount++;
+
   // Handle Text Nodes
   if (el.nodeType === Node.TEXT_NODE) {
     // Only return text nodes that have content
@@ -125,7 +134,7 @@ function captureDOM(el) {
 
     // Recursively process children
     el.childNodes.forEach(child => {
-      const childData = captureDOM(child);
+      const childData = captureDOM(child, depth + 1);
       if (childData) {
         nodeData.children.push(childData);
       }
