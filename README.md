@@ -13,6 +13,7 @@ UI Heist is a Chrome Extension that allows you to inspect any website, capture U
 
 - [Installation Guide](docs/INSTALLATION.md) - How to install the extension.
 - [Usage Guide](docs/USAGE.md) - How to use the inspector.
+- [Architecture Guide](docs/ARCHITECTURE.md) - Deep dive into how it works.
 - [Development Guide](docs/DEVELOPMENT.md) - How to contribute and run tests.
 - [Troubleshooting](docs/TROUBLESHOOTING.md) - Common issues and fixes.
 
